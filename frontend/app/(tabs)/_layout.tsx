@@ -9,11 +9,11 @@ export default function Layout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#99D0F1',
+          backgroundColor: '#89B1DD',
           borderTopColor: '#F8FAFC',
           height: 60,
         },
-        tabBarActiveTintColor: '#000000',
+        tabBarActiveTintColor: '#272635',
         tabBarInactiveTintColor: '#F4F4F8',
         tabBarLabelStyle: {
           fontSize: 16,
