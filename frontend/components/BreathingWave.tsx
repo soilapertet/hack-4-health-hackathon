@@ -102,7 +102,7 @@ export default function BreathingWave({ amplitude, progress }: BreathingWaveProp
                 justifyContent: "center",
                 alignItems: "center",
                 borderRadius: 16,
-                backgroundColor: "#F0F4FF",
+                backgroundColor: "#EEF5FD",
                 shadowColor: "#000",
                 shadowOpacity: 0.1,
                 shadowRadius: 4,
