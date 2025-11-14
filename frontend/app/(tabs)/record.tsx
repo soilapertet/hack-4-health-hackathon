@@ -5,22 +5,43 @@ import BreathingWave from '../../components/BreathingWave';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 
+//'npx expo install expo-audio'
+import { useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } from 'expo-audio';
+
+export async function uploadAudio(uri: string) {
+    if (!uri) return;
+    const form = new FormData();
+    form.append("file", { uri, name: "breathing.wav", type: "audio/wav"} as any);
+    try {
+        //put in backend url inside "" inside fetch
+        const response = await fetch("", {
+            method: "POST",
+            headers: { "Content-Type": "multipart/form-data" },
+            body: form
+        });
+    } catch (error) {
+        console.error("Upload failed: ", error);
+    }
+}
+
 export default function Record() {
+    const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+    const [recordedUri, setRecordedUri] = useState<string | null>(null);
 
     // Record State variables
-    const [isConnecting, setIsConnecting] = useState(true);
-    const [isRecording, setIsRecording] = useState(false);
+    // start recording immediately (no "connecting" step)
+    const [isRecording, setIsRecording] = useState(true);
     const [isWaitingForData, setIsWaitingForData] = useState(false);
 
-    const pulseAnim = useRef(new Animated.Value(1)).current;
     const progress = useRef(new Animated.Value(0)).current;
 
     // Reset states when user switches to a different tab
     useFocusEffect(
         React.useCallback(() => {
+            // start recording when this screen is focused
+            setIsRecording(true);
             return () => {
-                // Screen is unfocused or unmounted
-                setIsConnecting(true);
+                // Screen is unfocused or unmounted: stop recording and reset
                 setIsRecording(false);
                 setIsWaitingForData(false);
                 progress.setValue(0);
@@ -28,48 +49,28 @@ export default function Record() {
         }, [])
     );
 
-    // Add loading animation to simulate connecting to microphone
-    useEffect(() => {
-        if (isConnecting) {
-            Animated.loop(
-                Animated.sequence([
-                    Animated.timing(pulseAnim, {
-                        toValue: 1.3,
-                        duration: 700,
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(pulseAnim, {
-                        toValue: 1,
-                        duration: 700,
-                        useNativeDriver: true,
-                    }),
-                ])
-            ).start();
-        } else {
-            pulseAnim.stopAnimation();
-        }
-    }, []);
-
-    // Simulate connecting to microphone
-    // Duration = 4 seconds  (dummy data)
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsConnecting(false);
-            setIsRecording(true);
-        }, 4000);                       // subject to change
-
-        return () => clearTimeout(timer);
-    }, [isConnecting]);
-
     // Simulate actual recording of breathing
     // Duration = 15 seconds (dummy data)
     useEffect(() => {
         if (isRecording) {
+            (async () => {
+                await AudioModule.requestRecordingPermissionsAsync();
+                await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+
+                await audioRecorder.prepareToRecordAsync();
+                audioRecorder.record();
+
+                setTimeout(async () => {
+                    await audioRecorder.stop();
+                    setRecordedUri(audioRecorder.uri);
+                    if (recordedUri) await uploadAudio(recordedUri);
+                }, 15000);
+            })();
             Animated.timing(progress, {
                 toValue: 100,
-                duration: 15000,      // subject to change
+                duration: 15000,
                 useNativeDriver: false
-            }).start()
+            }).start();
         }
     }, [isRecording])
 
@@ -89,20 +90,7 @@ export default function Record() {
     }, []);
 
     return (
-        <>
-            {/* Display loading animation when in 'isConnecting' state */}
-            {isConnecting && (
-                <View style={styles.container}>
-                    <View style={styles.center}>
-                        <Text style={styles.heading}>Connecting to microphone...</Text>
-                        <ActivityIndicator size="large" color="#3B82F6" />
-                        <Text style={[styles.text, { marginTop: 10 }]}>
-                            Setting up recording for breathing patterns.
-                        </Text>
-                    </View>
-                </View>
-            )}
-
+        <>           
             {/* Display breathing wave form pattern when in 'isRecording' state */}
             {isRecording && (
                 <>
@@ -130,6 +118,16 @@ export default function Record() {
                             Checking for abnormal breathing events.
                         </Text>
                     </View>
+                </View>
+            )}
+
+            {/* ONLY FOR TESTING RECORDING: Download button for audio in .wav format after recording finishes */}
+            {recordedUri && (
+                <View style={{ marginTop: 20 }}>
+                    <Text>Recording completed!</Text>
+                    <a href={recordedUri} download="breathing.wav">
+                        <Text style={{ color: "blue" }}>Download Recording</Text>
+                    </a>
                 </View>
             )}
         </>
