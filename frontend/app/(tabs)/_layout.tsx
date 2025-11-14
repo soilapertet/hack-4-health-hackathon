@@ -1,5 +1,3 @@
-// app/_layout.tsx
-import React from 'react';
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -32,9 +30,9 @@ export default function Layout() {
         }}
       />
       <Tabs.Screen
-        name="monitor"
+        name="record"
         options={{
-          title: 'Monitor',
+          title: 'Record',
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="mic" size={size} color={color} />
           ),
