@@ -18,7 +18,7 @@ export default function Home() {
       </TouchableOpacity>
       <View style={styles.altContainer}>
         <Text style={styles.altText}>Or upload audio from device</Text>
-        <TouchableOpacity style={styles.uploadContainer} activeOpacity={0.8} onPress={() => router.push("/monitor")}>
+        <TouchableOpacity style={styles.uploadContainer} activeOpacity={0.8} onPress={() => router.push("/record")}>
           <Text style={styles.buttonText}>Upload Audio</Text>
           <MaterialIcons name="upload" size={19} color={'#F8FAFC'} />
         </TouchableOpacity>
