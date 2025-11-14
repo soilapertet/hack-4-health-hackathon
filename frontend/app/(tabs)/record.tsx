@@ -10,7 +10,8 @@ export default function Record() {
     // Record State variables
     const [isConnecting, setIsConnecting] = useState(true);
     const [isRecording, setIsRecording] = useState(false);
-    const [isWaitingForData, setIsWaitingForData] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [dataReceived, setDataReceived] = useState(false);
 
     const pulseAnim = useRef(new Animated.Value(1)).current;
     const progress = useRef(new Animated.Value(0)).current;
@@ -22,7 +23,8 @@ export default function Record() {
                 // Screen is unfocused or unmounted
                 setIsConnecting(true);
                 setIsRecording(false);
-                setIsWaitingForData(false);
+                setIsAnalyzing(false);
+                setDataReceived(false);
                 progress.setValue(0);
             };
         }, [])
@@ -80,13 +82,24 @@ export default function Record() {
             if (value >= 100) {
                 setTimeout(() => {
                     setIsRecording(false);
-                    setIsWaitingForData(true);
+                    setIsAnalyzing(true);
                 }, 500);
             }
         })
 
         return () => progress.removeListener(listener);
-    }, []);
+    }, [isRecording]);
+
+    useEffect(() => {
+        if(!isAnalyzing) return;
+
+        const timer = setTimeout(() => {
+            setIsAnalyzing(false);
+            setDataReceived(true);
+        }, 10000);
+
+        return () => clearTimeout(timer)
+    }, [isAnalyzing])
 
     return (
         <>
@@ -121,13 +134,26 @@ export default function Record() {
             )}
 
             {/* Display loading animation when in 'isWaitingForData' state */}
-            {isWaitingForData && (
+            {isAnalyzing && (
                 <View style={styles.container}>
                     <View style={styles.center}>
+
                         <Text style={styles.heading}>Analyzing breathing patterns...</Text>
                         <ActivityIndicator size="large" color="#3B82F6" />
                         <Text style={[styles.text, { marginTop: 10 }]}>
                             Checking for abnormal breathing events.
+                        </Text>
+                    </View>
+                </View>
+            )}
+
+            {dataReceived && (
+                <View style={styles.container}>
+                    <View style={styles.center}>
+                        <Text style={styles.heading}>Analysis Complete</Text>
+                        <Ionicons name="checkmark-circle" size={60} color="#22C55E" />
+                        <Text style={[styles.text, { marginTop: 10 }]}>
+                            Generating results...
                         </Text>
                     </View>
                 </View>
