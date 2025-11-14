@@ -5,73 +5,55 @@ import BreathingWave from '../../components/BreathingWave';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 
+
 export default function Record() {
 
     // Record State variables
-    const [isConnecting, setIsConnecting] = useState(true);
     const [isRecording, setIsRecording] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
     const [dataReceived, setDataReceived] = useState(false);
 
-    const pulseAnim = useRef(new Animated.Value(1)).current;
     const progress = useRef(new Animated.Value(0)).current;
+    const pauseOpacity = useRef(new Animated.Value(0)).current;
 
     // Reset states when user switches to a different tab
     useFocusEffect(
         React.useCallback(() => {
             return () => {
-                // Screen is unfocused or unmounted
-                setIsConnecting(true);
-                setIsRecording(false);
+                setIsRecording(true);
+                setIsPaused(false);
                 setIsAnalyzing(false);
                 setDataReceived(false);
                 progress.setValue(0);
+
+                startNewRecording();
+
+                return () => {
+                    progress.stopAnimation();
+                }
             };
         }, [])
     );
 
-    // Add loading animation to simulate connecting to microphone
+    // Start recording session on mount
     useEffect(() => {
-        if (isConnecting) {
-            Animated.loop(
-                Animated.sequence([
-                    Animated.timing(pulseAnim, {
-                        toValue: 1.3,
-                        duration: 700,
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(pulseAnim, {
-                        toValue: 1,
-                        duration: 700,
-                        useNativeDriver: true,
-                    }),
-                ])
-            ).start();
-        } else {
-            pulseAnim.stopAnimation();
-        }
+        startNewRecording();
     }, []);
-
-    // Simulate connecting to microphone
-    // Duration = 4 seconds  (dummy data)
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsConnecting(false);
-            setIsRecording(true);
-        }, 4000);                       // subject to change
-
-        return () => clearTimeout(timer);
-    }, [isConnecting]);
 
     // Simulate actual recording of breathing
     // Duration = 15 seconds (dummy data)
     useEffect(() => {
-        if (isRecording) {
-            Animated.timing(progress, {
-                toValue: 100,
-                duration: 15000,      // subject to change
-                useNativeDriver: false
-            }).start()
+        if (!isRecording) return;
+
+        Animated.timing(progress, {
+            toValue: 100,
+            duration: 15000,      // subject to change
+            useNativeDriver: false
+        }).start()
+
+        return () => {
+            progress.stopAnimation();
         }
     }, [isRecording])
 
@@ -91,7 +73,23 @@ export default function Record() {
     }, [isRecording]);
 
     useEffect(() => {
-        if(!isAnalyzing) return;
+        if (isPaused) {
+            Animated.timing(pauseOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: false
+            }).start();
+        } else {
+            Animated.timing(pauseOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: false
+            }).start();
+        }
+    }, [isPaused]);
+
+    useEffect(() => {
+        if (!isAnalyzing) return;
 
         const timer = setTimeout(() => {
             setIsAnalyzing(false);
@@ -101,34 +99,102 @@ export default function Record() {
         return () => clearTimeout(timer)
     }, [isAnalyzing])
 
+    const startNewRecording = () => {
+        setIsPaused(false);
+        setIsRecording(true);
+        progress.setValue(0);
+
+        // Insert actual microphone start
+
+        Animated.timing(progress, {
+            toValue: 100,
+            duration: 15000,
+            useNativeDriver: false,
+        }).start(({ finished }) => {
+            if (finished && !isPaused) {
+                handleEndSession();
+            }
+        });
+    }
+
+    // Function to handle when the stop button is first clicked
+    const handlePause = () => {
+        setIsPaused(true);
+        setIsRecording(false);
+        progress.stopAnimation();           // stop the progress bar animation
+
+        // Insert logic for stopping the actual microphone session
+    }
+
+    // Function to restart a new recording session
+    const handleRestart = () => {
+        startNewRecording();
+    }
+
+    const handleEndSession = () => {
+        setTimeout(() => {
+            // Update states when recording finishes naturally
+            setIsPaused(false);
+            setIsRecording(false);
+            setIsAnalyzing(true);
+
+            progress.stopAnimation();
+
+            // Insert logic for stopping the actual microphone session
+            // API Call to send the recorded audio to the backend
+
+        }, 500);
+    }
+
     return (
         <>
-            {/* Display loading animation when in 'isConnecting' state */}
-            {isConnecting && (
-                <View style={styles.container}>
-                    <View style={styles.center}>
-                        <Text style={styles.heading}>Connecting to microphone...</Text>
-                        <ActivityIndicator size="large" color="#3B82F6" />
-                        <Text style={[styles.text, { marginTop: 10 }]}>
-                            Setting up recording for breathing patterns.
-                        </Text>
-                    </View>
-                </View>
-            )}
-
-            {/* Display breathing wave form pattern when in 'isRecording' state */}
-            {isRecording && (
+            {/* RECORDING SEESION */}
+            {(isRecording || isPaused) && (
                 <>
                     <View style={styles.container}>
                         <View style={{ marginBottom: 10 }}>
-                            <Text style={styles.heading}>Recording in progress...</Text>
-                            <Text style={styles.text}>Monitoring your current breathing condition.</Text>
+                            {isRecording && (
+                                <>
+                                    <Text style={styles.heading}>Recording in progress...</Text>
+                                    <Text style={styles.text}>Monitoring your current breathing condition.</Text>
+                                </>
+                            )}
+                            {isPaused && (
+                                <>
+                                    <Text style={styles.heading}>Recording stop</Text>
+                                    <Text style={styles.text}>Session paused. You can restart or end the session.</Text>
+
+                                </>
+                            )}
                         </View>
                         <BreathingWave progress={progress} />
-                        <TouchableOpacity style={styles.stopButton}>
-                            <Ionicons name="stop" size={24} color="#F8FAFC" />
-                            <Text style={styles.stopText}>STOP</Text>
-                        </TouchableOpacity>
+                        {isRecording && (
+                            <TouchableOpacity
+                                style={[styles.controlButton, { backgroundColor: "#EF4444" }]}
+                                onPress={handlePause}>
+                                <Ionicons name="pause" size={24} color="#F8FAFC" />
+                            </TouchableOpacity>
+                        )}
+                        {isPaused && (
+                            <Animated.View style={{ opacity: pauseOpacity }}>
+                                <View style={styles.controlContainer}>
+
+                                    {/* Restart button to restart recording session */}
+                                    <TouchableOpacity
+                                        style={[styles.controlButton, { backgroundColor: "#3B82F6" }]}
+                                        onPress={handleRestart}>
+                                        <Ionicons name="refresh" size={24} color="#F8FAFC" />
+                                    </TouchableOpacity>
+
+                                    {/* Stop button to end session */}
+                                    <TouchableOpacity
+                                        style={[styles.controlButton, { backgroundColor: "#EF4444" }]}
+                                        onPress={handleEndSession}>
+                                        <Ionicons name="stop" size={24} color="#F8FAFC" />
+                                    </TouchableOpacity>
+                                </View>
+                            </Animated.View>
+                        )}
                     </View>
                 </>
             )}
@@ -216,27 +282,21 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    stopButton: {
+    controlContainer: {
+        flexDirection: "row",
+        gap: 8
+    },
+    controlButton: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#EF4444", // red
-        paddingHorizontal: 20,
+        paddingHorizontal: 10,
         paddingVertical: 8,
         borderRadius: 16,
-        marginTop: 10,
+        marginTop: 20,
         shadowColor: "#000",
         shadowOpacity: 0.2,
         shadowRadius: 6,
         elevation: 5,
-        position: 'absolute',
-        alignSelf: "center",
-        bottom: 30
-    },
-    stopText: {
-        color: "#F8FAFC",
-        fontWeight: "600",
-        fontSize: 16,
-        marginLeft: 8,
     },
 })
