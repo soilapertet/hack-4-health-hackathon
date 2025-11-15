@@ -7,10 +7,21 @@ import tensorflow_hub as hub
 import soundfile as sf
 import io
 import os
+from pydub import AudioSegment
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with specific origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Get the directory where this script is located
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -37,6 +48,10 @@ async def load_model():
         print(f"Error loading model: {error_msg}")
         
         # Provide helpful message for common macOS issue
+        if "ffmpeg" in error_msg.lower():
+            print("\n All users: pydub requires ffmpeg to handle certain audio formats.")
+            print("Check how to install ffmpeg for your OS in readme.md")
+            print("Then restart the server.\n")
         if "libomp" in error_msg.lower() and "darwin" in os.uname().sysname.lower():
             print("\nmacOS users: XGBoost requires OpenMP runtime.")
             print("Install it with: brew install libomp")
@@ -48,9 +63,30 @@ async def load_model():
 
 def extract_yamnet_features(audio_data: bytes) -> np.ndarray:
     """Extract YAMNet embeddings from audio data."""
-    # Load audio from bytes
-    audio_io = io.BytesIO(audio_data)
-    sig, sr = sf.read(audio_io, dtype='float32')
+    try:
+        # Try to load with soundfile first (handles WAV, FLAC, OGG)
+        audio_io = io.BytesIO(audio_data)
+        sig, sr = sf.read(audio_io, dtype='float32')
+    except Exception as e:
+        print(f"soundfile failed, trying pydub for WebM/other formats: {e}")
+        # If soundfile fails, use pydub to convert to WAV first (handles WebM, MP3, etc.)
+        try:
+            audio_io = io.BytesIO(audio_data)
+            audio_segment = AudioSegment.from_file(audio_io)
+            
+            # Convert to WAV in memory
+            wav_io = io.BytesIO()
+            audio_segment.export(wav_io, format='wav')
+            wav_io.seek(0)
+            
+            # Now load with soundfile
+            sig, sr = sf.read(wav_io, dtype='float32')
+        except Exception as e2:
+            print(f"pydub also failed: {e2}")
+            raise HTTPException(
+                status_code=http.HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+                detail=f"Could not decode audio file. Ensure it's a valid audio format. Error: {str(e2)}"
+            )
     
     # Convert stereo to mono if needed
     if sig.ndim > 1:
@@ -80,14 +116,6 @@ async def predictBreathing(audio: UploadFile = File(...)):
         if model is None or yamnet is None:
             raise HTTPException(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE, detail="Model not loaded")
         
-        # Check file extension instead of content type (more reliable)
-        filename = audio.filename.lower()
-        if not (filename.endswith('.wav') or filename.endswith('.mp3') or filename.endswith('.mpeg')):
-            raise HTTPException(
-                status_code=http.HTTPStatus.UNSUPPORTED_MEDIA_TYPE, 
-                detail=f"Unsupported file type. Got: {audio.filename}. Expected .wav or .mp3"
-            )
-
         # Read audio file
         audio_data = await audio.read()
         
@@ -97,7 +125,6 @@ async def predictBreathing(audio: UploadFile = File(...)):
         # Make prediction
         prediction_class = model.predict(features)[0]
         prediction_proba = model.predict_proba(features)[0]
-        
         # Map to labels
         prediction = "abnormal" if prediction_class == 1 else "normal"
         confidence = float(prediction_proba[prediction_class])
@@ -111,6 +138,7 @@ async def predictBreathing(audio: UploadFile = File(...)):
                 "abnormal": float(prediction_proba[1])
             }
         }
+        print(f"Response: {response}")
         return JSONResponse(content=response)
 
     except HTTPException:

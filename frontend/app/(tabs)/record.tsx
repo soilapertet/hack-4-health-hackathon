@@ -10,15 +10,27 @@ import { useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } fr
 
 export async function uploadAudio(uri: string) {
     if (!uri) return;
-    const form = new FormData();
-    form.append("audio", { uri, name: "breathing.wav", type: "audio/wav" } as any);
+    
     try {
-        //put in backend url inside "" inside fetch
-        const response = await fetch("http://127.0.0.1:8000/api/", {
+        // Fetch the file as a blob
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        
+        // Create FormData with the actual file blob
+        const form = new FormData();
+        form.append("audio", blob, "breathing.wav");
+        
+        const apiResponse = await fetch("http://127.0.0.1:8000/api/", {
             method: "POST",
-            headers: { "Content-Type": "multipart/form-data" },
             body: form
         });
+        
+        if (!apiResponse.ok) {
+            throw new Error(`HTTP error! status: ${apiResponse.status}`);
+        }
+        
+        const result = await apiResponse.json();
+        return result;
     } catch (error) {
         console.error("Upload failed: ", error);
     }

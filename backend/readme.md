@@ -48,7 +48,27 @@ source venv/bin/activate
 
 ```bash
 pip install -r requirements.txt
+```
+
+### Install System Dependencies
+
+#### macOS
+```bash
 brew install libomp
+brew install ffmpeg
+```
+
+#### Windows
+Download and install FFmpeg from https://ffmpeg.org/download.html
+Or use Chocolatey:
+```bash
+choco install ffmpeg
+```
+
+#### Linux (Ubuntu/Debian)
+```bash
+sudo apt update
+sudo apt install ffmpeg
 ```
 
 ### Run the FastAPI Server
