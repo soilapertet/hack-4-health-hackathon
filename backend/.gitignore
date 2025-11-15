@@ -2,3 +2,4 @@ embed_cache_ast
 logs
 venv/
 .env/
+__pycache__

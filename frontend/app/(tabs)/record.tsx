@@ -61,7 +61,7 @@ export default function Record() {
                 setDataReceived(false);
                 progress.setValue(0);
 
-                startNewRecording();
+                //startNewRecording();
 
                 return () => {
                     progress.stopAnimation();
