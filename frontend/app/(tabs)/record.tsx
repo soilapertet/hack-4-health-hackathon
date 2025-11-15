@@ -17,7 +17,7 @@ type BreathingResult = {
 
 //'npx expo install expo-audio'
 import { useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } from 'expo-audio';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 
 export async function uploadAudio(uri: string) {
     if (!uri) return;
@@ -48,6 +48,7 @@ export async function uploadAudio(uri: string) {
 }
 
 export default function Record() {
+    const router = useRouter();
     const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
     const [recordedUri, setRecordedUri] = useState<string | null>(null);
 
@@ -266,15 +267,8 @@ export default function Record() {
                             style={styles.buttonContainer} activeOpacity={0.8}
                             onPress={() => {
                                 if (!backendResult) return;
-                                router.push({
-                                    pathname: "/insights",
-                                    params: {
-                                        prediction: backendResult.prediction,
-                                        confidence : backendResult.confidence,
-                                        normalProb : backendResult.probabilities.normal,
-                                        abnormalProb : backendResult.probabilities.abnormal
-                                    }
-                                })
+                                const q = `prediction=${encodeURIComponent(backendResult.prediction)}&confidence=${backendResult.confidence}&normalProb=${backendResult.probabilities.normal}&abnormalProb=${backendResult.probabilities.abnormal}`;
+                                router.push(`/insights?${q}`);
                             }}
                         >
                             <MaterialIcons name="analytics" size={24} color={'#F8FAFC'} />

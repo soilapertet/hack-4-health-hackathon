@@ -6,7 +6,14 @@ import { useLocalSearchParams } from 'expo-router';
 export default function Insights() {
 
     // Get breathing results from Record page
-    const { prediction, confidence, normalProb, abnormalProb} = useLocalSearchParams();
+    const params = useLocalSearchParams();
+    const prediction = (params.prediction as string) || 'unknown';
+    const confidence = params.confidence ? parseFloat(params.confidence as string) : undefined;
+    const normalProb = params.normalProb ? parseFloat(params.normalProb as string) : undefined;
+    const abnormalProb = params.abnormalProb ? parseFloat(params.abnormalProb as string) : undefined;
+
+    const isNormal = prediction?.toLowerCase() === 'normal';
+    const statusBg = isNormal ? '#6EEB83' : '#FCA5A5';
 
     return (
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
@@ -14,8 +21,8 @@ export default function Insights() {
                 <View style={{ marginBottom: 30 }}>
                     <Text style={styles.heading}>Breathing Report</Text>
                 </View>
-                <View style={styles.statusContainer}>
-                    <Text style={styles.status}>NORMAL</Text>
+                <View style={[styles.statusContainer, { backgroundColor: statusBg }] }>
+                    <Text style={styles.status}>{prediction ? prediction.toUpperCase() : 'UNKNOWN'}</Text>
                 </View>
                 <View style={styles.reportContainer}>
                     <View style={styles.analysisContainer}>
@@ -23,28 +30,28 @@ export default function Insights() {
                             <MaterialIcons name="error-outline" size={24} color="#272635" />
                             <Text style={styles.subHeading}>Detected Issues</Text>
                         </View>
-                        <Text style={styles.statusText}>None</Text>
+                        <Text style={styles.statusText}>{isNormal ? 'None' : 'Abnormal breathing events detected'}</Text>
                     </View>
                     <View style={styles.analysisContainer}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                             <MaterialIcons name="medical-information" size={24} color="#272635" />
                             <Text style={styles.subHeading}>Diagnosis</Text>
                         </View>
-                        <Text style={styles.statusText}>None</Text>
+                        <Text style={styles.statusText}>{prediction ? `${prediction} (${confidence ? (confidence * 100).toFixed(1) + '%' : 'n/a'})` : 'n/a'}</Text>
                     </View>
                     <View style={styles.analysisContainer}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                             <MaterialIcons name="verified" size={24} color="#272635" />
                             <Text style={styles.subHeading}>Accuracy</Text>
                         </View>
-                        <Text style={styles.statusText}>80%</Text>
+                        <Text style={styles.statusText}>{confidence ? (confidence * 100).toFixed(1) + '%' : 'n/a'}</Text>
                     </View>
                     <View style={styles.analysisContainer}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                             <MaterialIcons name="analytics" size={24} color="#272635" />
                             <Text style={styles.subHeading}>Extra</Text>
                         </View>
-                        <Text style={styles.statusText}>None</Text>
+                        <Text style={styles.statusText}>{normalProb !== undefined && abnormalProb !== undefined ? `Normal: ${(normalProb*100).toFixed(1)}%\nAbnormal: ${(abnormalProb*100).toFixed(1)}%` : 'n/a'}</Text>
                     </View>
                 </View>
             </View>
