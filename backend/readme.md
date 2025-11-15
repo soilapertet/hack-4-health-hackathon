@@ -42,13 +42,13 @@ venv\Scripts\activate
 # On macOS/Linux
 python3 -m venv venv
 source venv/bin/activate
-brew install libomp
 ```
 
 ### Install Dependencies
 
 ```bash
 pip install -r requirements.txt
+brew install libomp
 ```
 
 ### Run the FastAPI Server
