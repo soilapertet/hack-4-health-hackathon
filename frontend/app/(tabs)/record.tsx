@@ -11,10 +11,10 @@ import { useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } fr
 export async function uploadAudio(uri: string) {
     if (!uri) return;
     const form = new FormData();
-    form.append("file", { uri, name: "breathing.wav", type: "audio/wav" } as any);
+    form.append("audio", { uri, name: "breathing.wav", type: "audio/wav" } as any);
     try {
         //put in backend url inside "" inside fetch
-        const response = await fetch("", {
+        const response = await fetch("http://127.0.0.1:8000/api/", {
             method: "POST",
             headers: { "Content-Type": "multipart/form-data" },
             body: form
