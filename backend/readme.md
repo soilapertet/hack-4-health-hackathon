@@ -6,11 +6,11 @@ http://127.0.0.1:8000/api/
 
 ### Example call
 
-Make a **POST** call with the file in **form data** with key as **audio** and value as the **audio file**
+Make a **POST** call with the file in **form data** with key as **audio** and value as the **audio file** at endpoint **http://127.0.0.1:8000/api/**
 
 
 
-### Example response
+### Example JSON response
 
 ```json
 {
