@@ -41,3 +41,6 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Soila
+../backend/__pycache__/main.cpython-313.pyc
