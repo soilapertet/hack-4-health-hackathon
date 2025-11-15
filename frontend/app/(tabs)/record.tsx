@@ -5,8 +5,28 @@ import BreathingWave from '../../components/BreathingWave';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 
+//'npx expo install expo-audio'
+import { useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } from 'expo-audio';
+
+export async function uploadAudio(uri: string) {
+    if (!uri) return;
+    const form = new FormData();
+    form.append("file", { uri, name: "breathing.wav", type: "audio/wav"} as any);
+    try {
+        //put in backend url inside "" inside fetch
+        const response = await fetch("", {
+            method: "POST",
+            headers: { "Content-Type": "multipart/form-data" },
+            body: form
+        });
+    } catch (error) {
+        console.error("Upload failed: ", error);
+    }
+}
 
 export default function Record() {
+    const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+    const [recordedUri, setRecordedUri] = useState<string | null>(null);
 
     // Record State variables
     const [isRecording, setIsRecording] = useState(false);
@@ -20,6 +40,8 @@ export default function Record() {
     // Reset states when user switches to a different tab
     useFocusEffect(
         React.useCallback(() => {
+            // start recording when this screen is focused
+            setIsRecording(true);
             return () => {
                 setIsRecording(true);
                 setIsPaused(false);
@@ -46,11 +68,24 @@ export default function Record() {
     useEffect(() => {
         if (!isRecording) return;
 
+            (async () => {
+                await AudioModule.requestRecordingPermissionsAsync();
+                await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+
+                await audioRecorder.prepareToRecordAsync();
+                audioRecorder.record();
+
+                setTimeout(async () => {
+                    await audioRecorder.stop();
+                    setRecordedUri(audioRecorder.uri);
+                    if (recordedUri) await uploadAudio(recordedUri);
+                }, 15000);
+            })();
         Animated.timing(progress, {
             toValue: 100,
-            duration: 15000,      // subject to change
+            duration: 15000,
             useNativeDriver: false
-        }).start()
+        }).start();
 
         return () => {
             progress.stopAnimation();
@@ -222,6 +257,16 @@ export default function Record() {
                             Generating results...
                         </Text>
                     </View>
+                </View>
+            )}
+
+            {/* ONLY FOR TESTING RECORDING: Download button for audio in .wav format after recording finishes */}
+            {recordedUri && (
+                <View style={{ marginTop: 20 }}>
+                    <Text>Recording completed!</Text>
+                    <a href={recordedUri} download="breathing.wav">
+                        <Text style={{ color: "blue" }}>Download Recording</Text>
+                    </a>
                 </View>
             )}
         </>
