@@ -80,8 +80,13 @@ async def predictBreathing(audio: UploadFile = File(...)):
         if model is None or yamnet is None:
             raise HTTPException(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE, detail="Model not loaded")
         
-        if audio.content_type not in ["audio/wav", "audio/mpeg", "audio/x-wav"]:
-            raise HTTPException(status_code=http.HTTPStatus.UNSUPPORTED_MEDIA_TYPE, detail="Unsupported file type")
+        # Check file extension instead of content type (more reliable)
+        filename = audio.filename.lower()
+        if not (filename.endswith('.wav') or filename.endswith('.mp3') or filename.endswith('.mpeg')):
+            raise HTTPException(
+                status_code=http.HTTPStatus.UNSUPPORTED_MEDIA_TYPE, 
+                detail=f"Unsupported file type. Got: {audio.filename}. Expected .wav or .mp3"
+            )
 
         # Read audio file
         audio_data = await audio.read()
@@ -108,6 +113,8 @@ async def predictBreathing(audio: UploadFile = File(...)):
         }
         return JSONResponse(content=response)
 
+    except HTTPException:
+        raise
     except Exception as e:
         response = {
             "status": "error",
