@@ -11,7 +11,7 @@ import { useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } fr
 export async function uploadAudio(uri: string) {
     if (!uri) return;
     const form = new FormData();
-    form.append("file", { uri, name: "breathing.wav", type: "audio/wav"} as any);
+    form.append("file", { uri, name: "breathing.wav", type: "audio/wav" } as any);
     try {
         //put in backend url inside "" inside fetch
         const response = await fetch("", {
@@ -43,7 +43,7 @@ export default function Record() {
             // start recording when this screen is focused
             setIsRecording(true);
             return () => {
-                setIsRecording(true);
+                setIsRecording(false);
                 setIsPaused(false);
                 setIsAnalyzing(false);
                 setDataReceived(false);
@@ -58,39 +58,21 @@ export default function Record() {
         }, [])
     );
 
-    // Start recording session on mount
+    // Runs once when the component mounts
     useEffect(() => {
-        startNewRecording();
+        (async () => {
+            await AudioModule.requestRecordingPermissionsAsync();
+            await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+        })();
     }, []);
+
 
     // Simulate actual recording of breathing
     // Duration = 15 seconds (dummy data)
     useEffect(() => {
         if (!isRecording) return;
-
-            (async () => {
-                await AudioModule.requestRecordingPermissionsAsync();
-                await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
-
-                await audioRecorder.prepareToRecordAsync();
-                audioRecorder.record();
-
-                setTimeout(async () => {
-                    await audioRecorder.stop();
-                    setRecordedUri(audioRecorder.uri);
-                    if (recordedUri) await uploadAudio(recordedUri);
-                }, 15000);
-            })();
-        Animated.timing(progress, {
-            toValue: 100,
-            duration: 15000,
-            useNativeDriver: false
-        }).start();
-
-        return () => {
-            progress.stopAnimation();
-        }
-    }, [isRecording])
+        startNewRecording();
+    }, [isRecording]);
 
     // Once recording is done, send audio recording to backend
     // Program will wait from response from backend before updating the state variable -> isWaitingForData
@@ -134,51 +116,54 @@ export default function Record() {
         return () => clearTimeout(timer)
     }, [isAnalyzing])
 
-    const startNewRecording = () => {
+    const startNewRecording = async () => {
         setIsPaused(false);
         setIsRecording(true);
         progress.setValue(0);
+        setRecordedUri(null);
 
-        // Insert actual microphone start
+        await audioRecorder.prepareToRecordAsync();
+        audioRecorder.record();
 
         Animated.timing(progress, {
             toValue: 100,
             duration: 15000,
             useNativeDriver: false,
-        }).start(({ finished }) => {
+        }).start(async ({ finished }) => {
             if (finished && !isPaused) {
+                await audioRecorder.stop();
                 handleEndSession();
             }
         });
     }
 
     // Function to handle when the stop button is first clicked
-    const handlePause = () => {
+    const handlePause = async () => {
         setIsPaused(true);
         setIsRecording(false);
         progress.stopAnimation();           // stop the progress bar animation
-
-        // Insert logic for stopping the actual microphone session
+        await audioRecorder.stop();
     }
 
     // Function to restart a new recording session
-    const handleRestart = () => {
+    const handleRestart = async () => {
         startNewRecording();
     }
 
-    const handleEndSession = () => {
-        setTimeout(() => {
-            // Update states when recording finishes naturally
-            setIsPaused(false);
-            setIsRecording(false);
-            setIsAnalyzing(true);
+    const handleEndSession = async () => {
+        // Update states when recording finishes naturally
+        setIsPaused(false);
+        setIsRecording(false);
+        setIsAnalyzing(true);
 
-            progress.stopAnimation();
+        progress.stopAnimation();
 
-            // Insert logic for stopping the actual microphone session
-            // API Call to send the recorded audio to the backend
+        setRecordedUri(audioRecorder.uri);
+        if (audioRecorder.uri) await uploadAudio(audioRecorder.uri);
 
-        }, 500);
+
+        // Insert logic for stopping the actual microphone session
+        // API Call to send the recorded audio to the backend
     }
 
     return (
