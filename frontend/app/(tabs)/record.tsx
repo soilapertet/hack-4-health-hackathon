@@ -16,9 +16,9 @@ export async function uploadAudio(uri: string) {
         //put in backend url inside "" inside fetch
         const response = await fetch("http://127.0.0.1:8000/api/", {
             method: "POST",
-            headers: { "Content-Type": "multipart/form-data" },
             body: form
         });
+        return response;
     } catch (error) {
         console.error("Upload failed: ", error);
     }
@@ -49,7 +49,7 @@ export default function Record() {
                 setDataReceived(false);
                 progress.setValue(0);
 
-                startNewRecording();
+                //startNewRecording();
 
                 return () => {
                     progress.stopAnimation();
