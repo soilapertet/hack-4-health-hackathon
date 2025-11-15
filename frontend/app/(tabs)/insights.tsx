@@ -2,17 +2,29 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
+import  StatusScale  from '../../components/StatusScale';
+export type PredictionType = "normal" | "abnormal" | "severe";
 
 export default function Insights() {
 
     // Get breathing results from Record page
-    const params = useLocalSearchParams();
-    const prediction = (params.prediction as string) || 'unknown';
-    const confidence = params.confidence ? parseFloat(params.confidence as string) : undefined;
-    const normalProb = params.normalProb ? parseFloat(params.normalProb as string) : undefined;
-    const abnormalProb = params.abnormalProb ? parseFloat(params.abnormalProb as string) : undefined;
+const params = useLocalSearchParams();
 
-    const isNormal = prediction?.toLowerCase() === 'normal';
+const rawPrediction = (params.prediction as string) || "unknown";
+
+const prediction: PredictionType =
+  rawPrediction === "normal" ||
+  rawPrediction === "abnormal" ||
+  rawPrediction === "severe"
+    ? rawPrediction
+    : "abnormal"; // fallback to a valid PredictionType
+
+const confidence = params.confidence ? parseFloat(params.confidence as string) : undefined;
+const normalProb = params.normalProb ? parseFloat(params.normalProb as string) : undefined;
+const abnormalProb = params.abnormalProb ? parseFloat(params.abnormalProb as string) : undefined;
+
+const isNormal = prediction === "normal";
+
     const statusBg = isNormal ? '#6EEB83' : '#FCA5A5';
 
     return (
@@ -21,9 +33,10 @@ export default function Insights() {
                 <View style={{ marginBottom: 30 }}>
                     <Text style={styles.heading}>Breathing Report</Text>
                 </View>
-                <View style={[styles.statusContainer, { backgroundColor: statusBg }] }>
+                {/* <View style={[styles.statusContainer, { backgroundColor: statusBg }] }>
                     <Text style={styles.status}>{prediction ? prediction.toUpperCase() : 'UNKNOWN'}</Text>
-                </View>
+                </View> */}
+                <StatusScale prediction={prediction ? prediction.toUpperCase() : 'UNKNOWN'}/>
                 <View style={styles.reportContainer}>
                     <View style={styles.analysisContainer}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
@@ -59,6 +72,8 @@ export default function Insights() {
 
     );
 }
+
+
 
 const styles = StyleSheet.create({
     container: {
