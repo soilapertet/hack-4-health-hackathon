@@ -11,6 +11,7 @@ from pydub import AudioSegment
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from gemini import gemini
 
 app = FastAPI()
 app.add_middleware(
@@ -135,6 +136,16 @@ async def predictBreathing(audio: UploadFile = File(...)):
         # Map to labels
         prediction = "abnormal" if prediction_class == 1 else "normal"
         confidence = float(prediction_proba[prediction_class])
+        
+        # Generate Gemini recommendation
+        abnormal_prob = float(prediction_proba[1])
+        gemini_prompt = f"""Based on a respiratory audio analysis with {abnormal_prob*100:.1f}% probability of abnormal breathing patterns, 
+        provide a brief recommendation about whether the user should be concerned and what actions they should take. 
+        Consider: if probability is below 30% - reassuring, 30-60% - monitor, 60-80% - should consult doctor, above 80% - seek medical attention soon."""
+        
+        recommendation = gemini(gemini_prompt)
+        if recommendation is None:
+            recommendation = "Unable to generate recommendation at this time."
 
         response = {
             "status": "success",
@@ -143,7 +154,8 @@ async def predictBreathing(audio: UploadFile = File(...)):
             "probabilities": {
                 "normal": float(prediction_proba[0]),
                 "abnormal": float(prediction_proba[1])
-            }
+            },
+            "recommendation": recommendation
         }
         print(f"Response: {response}")
         return JSONResponse(content=response)
