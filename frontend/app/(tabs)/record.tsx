@@ -2,33 +2,44 @@ import { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import BreathingWave from '../../components/BreathingWave';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
+
+type BreathingResult = {
+    status: string;
+    prediction: string,
+    confidence: number,
+    probabilities: {
+        normal: number,
+        abnormal: number
+    }
+};
 
 //'npx expo install expo-audio'
 import { useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } from 'expo-audio';
+import { router } from 'expo-router';
 
 export async function uploadAudio(uri: string) {
     if (!uri) return;
-    
+
     try {
         // Fetch the file as a blob
         const response = await fetch(uri);
         const blob = await response.blob();
-        
+
         // Create FormData with the actual file blob
         const form = new FormData();
         form.append("audio", blob, "breathing.wav");
-        
+
         const apiResponse = await fetch("http://127.0.0.1:8000/api/", {
             method: "POST",
             body: form
         });
-        
+
         if (!apiResponse.ok) {
             throw new Error(`HTTP error! status: ${apiResponse.status}`);
         }
-        
+
         const result = await apiResponse.json();
         return result;
     } catch (error) {
@@ -45,6 +56,7 @@ export default function Record() {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [dataReceived, setDataReceived] = useState(false);
+    const [backendResult, setBackendResult] = useState<BreathingResult | null>(null);
 
     const progress = useRef(new Animated.Value(0)).current;
     const pauseOpacity = useRef(new Animated.Value(0)).current;
@@ -171,16 +183,16 @@ export default function Record() {
         progress.stopAnimation();
 
         setRecordedUri(audioRecorder.uri);
-        if (audioRecorder.uri) await uploadAudio(audioRecorder.uri);
 
-
-        // Insert logic for stopping the actual microphone session
-        // API Call to send the recorded audio to the backend
+        if (audioRecorder.uri) {
+            const result = await uploadAudio(audioRecorder.uri);
+            setBackendResult(result);           // save results from API call
+        }
     }
 
     return (
         <>
-            {/* RECORDING SEESION */}
+            {/* RECORDING SESSION */}
             {(isRecording || isPaused) && (
                 <>
                     <View style={styles.container}>
@@ -250,22 +262,37 @@ export default function Record() {
                     <View style={styles.center}>
                         <Text style={styles.heading}>Analysis Complete</Text>
                         <Ionicons name="checkmark-circle" size={60} color="#22C55E" />
-                        <Text style={[styles.text, { marginTop: 10 }]}>
-                            Generating results...
-                        </Text>
+                        <TouchableOpacity
+                            style={styles.buttonContainer} activeOpacity={0.8}
+                            onPress={() => {
+                                if (!backendResult) return;
+                                router.push({
+                                    pathname: "/insights",
+                                    params: {
+                                        prediction: backendResult.prediction,
+                                        confidence : backendResult.confidence,
+                                        normalProb : backendResult.probabilities.normal,
+                                        abnormalProb : backendResult.probabilities.abnormal
+                                    }
+                                })
+                            }}
+                        >
+                            <MaterialIcons name="analytics" size={24} color={'#F8FAFC'} />
+                            <Text style={styles.buttonText}>View Report</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             )}
 
             {/* ONLY FOR TESTING RECORDING: Download button for audio in .wav format after recording finishes */}
-            {recordedUri && (
+            {/* {recordedUri && (
                 <View style={{ marginTop: 20 }}>
                     <Text>Recording completed!</Text>
                     <a href={recordedUri} download="breathing.wav">
                         <Text style={{ color: "blue" }}>Download Recording</Text>
                     </a>
                 </View>
-            )}
+            )} */}
         </>
     );
 }
@@ -340,5 +367,22 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 6,
         elevation: 5,
+    },
+    buttonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignContent: 'center',
+        gap: 2,
+        borderRadius: 16,
+        backgroundColor: '#274c77',
+        padding: 10,
+        width: 150,
+        marginTop: 20
+    },
+    buttonText: {
+        color: '#F8FAFC',
+        fontWeight: '600',
+        marginLeft: 3,
+        fontSize: 18
     },
 })

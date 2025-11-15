@@ -1,26 +1,12 @@
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 
-type InsightsProps = {
-    breathingPattern: string;
-    abnormalSubtype?: string;
-    diagnosis?: string;
-    image?: string;
-    confidence?: string;
-    timestamp?: string;
-}
+export default function Insights() {
 
-export default function Insights({
-    breathingPattern,
-    abnormalSubtype,
-    diagnosis,
-    image,
-    confidence,
-    timestamp
-}: InsightsProps) {
-
-    const router = useRouter();
+    // Get breathing results from Record page
+    const { prediction, confidence, normalProb, abnormalProb} = useLocalSearchParams();
 
     return (
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
@@ -133,6 +119,4 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
     }
-
-
 })
