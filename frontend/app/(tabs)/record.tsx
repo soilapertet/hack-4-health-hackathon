@@ -12,7 +12,8 @@ type BreathingResult = {
     probabilities: {
         normal: number,
         abnormal: number
-    }
+    },
+    recommendation?: string
 };
 
 //'npx expo install expo-audio'
@@ -187,6 +188,7 @@ export default function Record() {
 
         if (audioRecorder.uri) {
             const result = await uploadAudio(audioRecorder.uri);
+            console.log('Backend result:', result);
             setBackendResult(result);           // save results from API call
         }
     }
@@ -267,7 +269,7 @@ export default function Record() {
                             style={styles.buttonContainer} activeOpacity={0.8}
                             onPress={() => {
                                 if (!backendResult) return;
-                                const q = `prediction=${encodeURIComponent(backendResult.prediction)}&confidence=${backendResult.confidence}&normalProb=${backendResult.probabilities.normal}&abnormalProb=${backendResult.probabilities.abnormal}`;
+                                const q = `prediction=${encodeURIComponent(backendResult.prediction)}&confidence=${backendResult.confidence}&normalProb=${backendResult.probabilities.normal}&abnormalProb=${backendResult.probabilities.abnormal}&recommendation=${encodeURIComponent(backendResult.recommendation || '')}`;
                                 router.push(`/insights?${q}`);
                             }}
                         >

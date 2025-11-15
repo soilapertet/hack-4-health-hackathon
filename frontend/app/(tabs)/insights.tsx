@@ -11,6 +11,10 @@ export default function Insights() {
     const confidence = params.confidence ? parseFloat(params.confidence as string) : undefined;
     const normalProb = params.normalProb ? parseFloat(params.normalProb as string) : undefined;
     const abnormalProb = params.abnormalProb ? parseFloat(params.abnormalProb as string) : undefined;
+    const recommendation = (params.recommendation as string) || '';
+
+    console.log('Recommendation received:', recommendation);
+    console.log('All params:', params);
 
     const isNormal = prediction?.toLowerCase() === 'normal';
     const statusBg = isNormal ? '#6EEB83' : '#FCA5A5';
@@ -54,6 +58,16 @@ export default function Insights() {
                         <Text style={styles.statusText}>{normalProb !== undefined && abnormalProb !== undefined ? `Normal: ${(normalProb*100).toFixed(1)}%\nAbnormal: ${(abnormalProb*100).toFixed(1)}%` : 'n/a'}</Text>
                     </View>
                 </View>
+                
+                {recommendation && (
+                    <View style={styles.recommendationContainer}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                            <MaterialIcons name="lightbulb" size={24} color="#272635" />
+                            <Text style={styles.subHeading}>AI Recommendation</Text>
+                        </View>
+                        <Text style={styles.recommendationText}>{recommendation}</Text>
+                    </View>
+                )}
             </View>
         </ScrollView>
 
@@ -125,5 +139,20 @@ const styles = StyleSheet.create({
         shadowColor: "#000",
         shadowOpacity: 0.1,
         shadowRadius: 4,
+    },
+    recommendationContainer: {
+        marginTop: 30,
+        padding: 20,
+        borderRadius: 16,
+        backgroundColor: "#FEF3C7",
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    recommendationText: {
+        fontSize: 16,
+        lineHeight: 24,
+        color: "#272635",
+        fontWeight: "600",
     }
 })
