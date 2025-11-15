@@ -38,7 +38,7 @@ async def load_model():
         
         # Provide helpful message for common macOS issue
         if "libomp" in error_msg.lower() and "darwin" in os.uname().sysname.lower():
-            print("\n⚠️  macOS users: XGBoost requires OpenMP runtime.")
+            print("\nmacOS users: XGBoost requires OpenMP runtime.")
             print("Install it with: brew install libomp")
             print("Then restart the server.\n")
         
