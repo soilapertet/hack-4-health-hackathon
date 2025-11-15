@@ -145,7 +145,13 @@ async def predictBreathing(audio: UploadFile = File(...)):
         
         recommendation = gemini(gemini_prompt)
         if recommendation is None:
-            recommendation = "Unable to generate recommendation at this time."
+            # Fallback recommendations based on abnormal probability
+            if abnormal_prob >= 0.75:
+                recommendation = "Your breathing pattern shows significant abnormalities. We strongly recommend consulting with a healthcare professional as soon as possible for a proper evaluation."
+            elif abnormal_prob >= 0.30:
+                recommendation = "Your breathing pattern shows some irregularities. Consider monitoring your symptoms and consult a doctor if you experience any discomfort or worsening of symptoms."
+            else:
+                recommendation = "Your breathing pattern appears normal. Continue maintaining good respiratory health through regular exercise and proper breathing techniques."
 
         response = {
             "status": "success",

@@ -50,6 +50,27 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Configure Environment Variables (Optional)
+
+Create a `.env` file in the `backend` directory with your Gemini API key for AI-powered personalized recommendations:
+
+```bash
+# Create .env file
+touch .env
+```
+
+Add the following content to `.env`:
+```
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+To get a Gemini API key:
+1. Visit https://makersuite.google.com/app/apikey
+2. Create a new API key
+3. Copy and paste it into your `.env` file
+
+**Note:** If no API key is provided, the system will use fallback recommendations based on the analysis results
+
 ### Install System Dependencies
 
 #### macOS
